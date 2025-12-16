@@ -8,9 +8,9 @@ import numpy as np
 st.set_page_config(page_title="Smart Waste Classifier", layout="wide")
 
 st.title("♻️ Smart Waste Classifier")
-st.write("ضع الصورة لتصنيف نوع النفايات")
+st.markdown("<h3 style='text-align: center; color: green;'>Upload an image to classify waste type</h3>", unsafe_allow_html=True)
 
-# تحميل المودل
+# Load the model
 @st.cache_resource
 def load_mymodel():
     model = load_model("my_mobnet_model.h5")
@@ -18,21 +18,22 @@ def load_mymodel():
 
 model = load_mymodel()
 
-# رفع الصورة
-uploaded_file = st.file_uploader("اختر صورة", type=["jpg", "jpeg", "png"])
+# File uploader
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption='الصورة المختارة', use_column_width=True)
+    st.image(image, caption='Selected Image', use_column_width=True)
 
-    # تجهيز الصورة للمودل
-    img = image.resize((224, 224))  # حجم المودل MobileNet
+    # Prepare image for model
+    img = image.resize((224, 224))  # MobileNet input size
     img_array = np.array(img)/255.0
     img_array = np.expand_dims(img_array, axis=0)
 
-    # التنبؤ
+    # Prediction
     prediction = model.predict(img_array)
     class_index = np.argmax(prediction)
-    classes = ["Cardboard", "Glass", "Metal", "Paper", "Plastic", "Trash"]  # عدلي حسب الكلاسات الحقيقية
-    st.success(f"✅ النوع المتوقع: {classes[class_index]}")
+    classes = ["Cardboard", "Glass", "Metal", "Paper", "Plastic", "Trash"]  # Replace with your actual classes
+    st.success(f"✅ Predicted Class: {classes[class_index]}")
+
 
