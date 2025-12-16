@@ -5,79 +5,50 @@ import tensorflow as tf
 
 # =========================
 # Page Configuration
-# =========================
 st.set_page_config(
-    page_title="♻️ Smart Waste Classifier",
+    page_title="Smart Waste Classifier",
     page_icon="♻️",
-    layout="wide"
+    layout="centered"
 )
 
-# =========================
-# Custom CSS for Styling
-# =========================
+st.title("♻️ Smart Waste Classifier")
 st.markdown(
-    """
-    <style>
-    .stApp {
-        background: linear-gradient(to right, #d0f0c0, #a0e0a0);
-        font-family: 'Arial', sans-serif;
-    }
-    .title {
-        font-size: 40px;
-        font-weight: bold;
-        color: #2a7f2a;
-        text-align: center;
-    }
-    .prediction {
-        font-size: 30px;
-        font-weight: bold;
-        color: #1f5f1f;
-    }
-    </style>
-    """, unsafe_allow_html=True
+    "<h3 style='text-align: center; color: green;'>Classify your waste and recycle smartly!</h3>",
+    unsafe_allow_html=True
 )
 
 # =========================
-# Load TFLite Model
-# =========================
-interpreter = tf.lite.Interpreter(model_path="model.tflite")
-interpreter.allocate_tensors()
+# Load model
+@st.cache_resource
+def load_model():
+    model = tf.keras.models.load_model("model.h5")
+    return model
 
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-
-# =========================
-# Prediction Function
-# =========================
-def predict(image: Image.Image):
-    IMG_HEIGHT = input_details[0]['shape'][1]
-    IMG_WIDTH = input_details[0]['shape'][2]
-    
-    img = image.resize((IMG_WIDTH, IMG_HEIGHT))
-    img_array = np.array(img, dtype=np.float32)
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
-    
-    interpreter.set_tensor(input_details[0]['index'], img_array)
-    interpreter.invoke()
-    
-    output_data = interpreter.get_tensor(output_details[0]['index'])
-    prediction = np.argmax(output_data)
-    return prediction
+model = load_model()
 
 # =========================
-# Streamlit Interface
-# =========================
-st.markdown('<div class="title">♻️ Smart Waste Classifier ♻️</div>', unsafe_allow_html=True)
+# Classes
+classes = ["plastic", "metal", "glass", "organic"]  # عدليها حسب مودلك
 
+# =========================
+# Upload Image
 uploaded_file = st.file_uploader("Upload an image of waste", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
+if uploaded_file is not None:
+    image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Uploaded Image", use_column_width=True)
-    
-    st.write("Processing...", unsafe_allow_html=True)
-    prediction = predict(image)
-    
-    # Mapping example classes, عدّلي حسب مودلك
-    classes = {0: "Plastic", 1: "Metal", 2: "Paper", 3: "Organic", 4: "Glass"}
-    st.markdown(f'<div class="prediction">Prediction: {classes.get(prediction, "Unknown")}</div>', unsafe_allow_html=True)
+
+    # =========================
+    # Preprocess Image
+    IMG_HEIGHT, IMG_WIDTH = 224, 224  # عدلي حسب مودلك
+    img_array = image.resize((IMG_WIDTH, IMG_HEIGHT))
+    img_array = np.array(img_array) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+
+    # =========================
+    # Predict
+    predictions = model.predict(img_array)
+    pred_class = classes[np.argmax(predictions)]
+    confidence = np.max(predictions) * 100
+
+    st.success(f"Prediction: **{pred_class}** ({confidence:.2f}%)")
